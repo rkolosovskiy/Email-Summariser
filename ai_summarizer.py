@@ -1,23 +1,24 @@
 """
 AI Summarizer Module
-Uses Claude AI to generate summaries of email content
+Uses Google Gemini AI to generate summaries of email content
 """
 
-import anthropic
+import google.generativeai as genai
 from datetime import datetime
 
 
 class AISummarizer:
-    """AI-powered email summarizer using Claude"""
+    """AI-powered email summarizer using Google Gemini"""
 
     def __init__(self, api_key):
         """
         Initialize the AI summarizer
 
         Args:
-            api_key: Anthropic API key
+            api_key: Google Gemini API key
         """
-        self.client = anthropic.Anthropic(api_key=api_key)
+        genai.configure(api_key=api_key)
+        self.model = genai.GenerativeModel('gemini-2.5-pro')
 
     def summarize_emails(self, emails, focus_topic="AI"):
         """
@@ -43,20 +44,16 @@ class AISummarizer:
         prompt = self._create_summary_prompt(email_content, focus_topic)
 
         try:
-            # Call Claude API
-            message = self.client.messages.create(
-                model="claude-sonnet-4-5-20250929",
-                max_tokens=4000,
-                temperature=0.3,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ]
+            # Call Gemini API
+            response = self.model.generate_content(
+                prompt,
+                generation_config={
+                    'temperature': 0.3,
+                    'max_output_tokens': 4000,
+                }
             )
 
-            summary = message.content[0].text
+            summary = response.text
             print("Summary generated successfully!")
             return summary
 
@@ -162,14 +159,15 @@ Please provide your comprehensive {focus_topic} industry summary now:"""
 Provide concise, actionable bullet points:"""
 
         try:
-            message = self.client.messages.create(
-                model="claude-sonnet-4-5-20250929",
-                max_tokens=500,
-                temperature=0.3,
-                messages=[{"role": "user", "content": prompt}]
+            response = self.model.generate_content(
+                prompt,
+                generation_config={
+                    'temperature': 0.3,
+                    'max_output_tokens': 500,
+                }
             )
 
-            insights = message.content[0].text
+            insights = response.text
             print("Quick insights generated!")
             return insights
 
