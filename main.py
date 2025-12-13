@@ -21,14 +21,14 @@ def load_config():
 
     config = {
         'credentials_path': os.getenv('GMAIL_CREDENTIALS_PATH', 'credentials.json'),
-        'anthropic_api_key': os.getenv('ANTHROPIC_API_KEY'),
+        'gemini_api_key': os.getenv('GEMINI_API_KEY'),
         'gmail_label': os.getenv('GMAIL_LABEL', 'INBOX'),
-        'max_emails': int(os.getenv('MAX_EMAILS', '50'))
+        'max_emails': int(os.getenv('MAX_EMAILS', '100'))
     }
 
     # Validate required config
-    if not config['anthropic_api_key']:
-        print("Error: ANTHROPIC_API_KEY not found in environment variables")
+    if not config['gemini_api_key']:
+        print("Error: GEMINI_API_KEY not found in environment variables")
         print("Please set it in your .env file or export it")
         sys.exit(1)
 
@@ -183,7 +183,7 @@ Examples:
 
     # Initialize AI summarizer
     print_separator()
-    summarizer = AISummarizer(config['anthropic_api_key'])
+    summarizer = AISummarizer(config['gemini_api_key'])
 
     # Generate summary
     try:
