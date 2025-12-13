@@ -36,6 +36,21 @@ class GmailAuthenticator:
         Returns:
             Google credentials object
         """
+        # Try to authenticate using Environment Variables (Cloud Run / Production)
+        if os.getenv('GMAIL_REFRESH_TOKEN') and os.getenv('GMAIL_CLIENT_ID') and os.getenv('GMAIL_CLIENT_SECRET'):
+            print("Authenticating using Environment Variables...")
+            info = {
+                "client_id": os.getenv('GMAIL_CLIENT_ID'),
+                "client_secret": os.getenv('GMAIL_CLIENT_SECRET'),
+                "refresh_token": os.getenv('GMAIL_REFRESH_TOKEN'),
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "scopes": SCOPES
+            }
+            self.creds = Credentials.from_authorized_user_info(info, SCOPES)
+            if self.creds and self.creds.expired and self.creds.refresh_token:
+                self.creds.refresh(Request())
+            return self.creds
+
         # Check if we have valid credentials saved
         if os.path.exists(self.token_path):
             with open(self.token_path, 'rb') as token:
