@@ -2,7 +2,8 @@ import os
 import sys
 import markdown
 import tempfile
-from flask import Flask, render_template, request, send_file, redirect, url_for, flash
+from functools import wraps
+from flask import Flask, render_template, request, send_file, redirect, url_for, flash, session
 from dotenv import load_dotenv
 
 from gmail_auth import GmailAuthenticator
@@ -14,18 +15,28 @@ from pdf_generator import PDFGenerator
 load_dotenv()
 
 app = Flask(__name__)
-# Secret key needed for session/flash, generating a random one if not set
+# Secret key needed for session/flash
 app.secret_key = os.getenv('FLASK_SECRET_KEY', os.urandom(24))
+# Simple password from environment variable
+APP_PASSWORD = os.getenv('APP_PASSWORD')
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # If no password is set in env, skip auth (optional, but good for local dev if wanted)
+        if not APP_PASSWORD:
+            return f(*args, **kwargs)
+        
+        if not session.get('logged_in'):
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 def get_gmail_client():
-    try:
-        credentials_path = os.getenv('GMAIL_CREDENTIALS_PATH', 'credentials.json')
-        authenticator = GmailAuthenticator(credentials_path=credentials_path)
-        service = authenticator.get_gmail_service()
-        return GmailClient(service)
-    except Exception as e:
-        print(f"Authentication Error: {e}")
-        return None
+    credentials_path = os.getenv('GMAIL_CREDENTIALS_PATH', 'credentials.json')
+    authenticator = GmailAuthenticator(credentials_path=credentials_path)
+    service = authenticator.get_gmail_service()
+    return GmailClient(service)
 
 def get_summarizer():
     api_key = os.getenv('GEMINI_API_KEY')
@@ -33,11 +44,29 @@ def get_summarizer():
         return None
     return AISummarizer(api_key)
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        password = request.form.get('password')
+        if password == APP_PASSWORD:
+            session['logged_in'] = True
+            return redirect(url_for('index'))
+        else:
+            flash('Invalid password')
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    return redirect(url_for('login'))
+
 @app.route('/', methods=['GET'])
+@login_required
 def index():
     return render_template('index.html')
 
 @app.route('/summarize', methods=['POST'])
+@login_required
 def summarize():
     topic = request.form.get('topic', 'AI')
     label = request.form.get('label', 'INBOX')
@@ -47,14 +76,12 @@ def summarize():
         max_emails = 50
 
     # 1. Authenticate & Fetch
-    client = get_gmail_client()
-    if not client:
-        return "Gmail Authentication Failed. Please check server logs.", 500
-
     try:
+        client = get_gmail_client()
         emails = client.fetch_emails(label_name=label, max_results=max_emails)
     except Exception as e:
-        return f"Error fetching emails: {str(e)}", 500
+        import traceback
+        return f"<h3>Error</h3><pre>{str(e)}\n\n{traceback.format_exc()}</pre>", 500
 
     if not emails:
         return render_template('summary.html', content_html="<p>No emails found for the specified label.</p>", markdown_content="")

@@ -37,12 +37,28 @@ class GmailAuthenticator:
             Google credentials object
         """
         # Try to authenticate using Environment Variables (Cloud Run / Production)
-        if os.getenv('GMAIL_REFRESH_TOKEN') and os.getenv('GMAIL_CLIENT_ID') and os.getenv('GMAIL_CLIENT_SECRET'):
+        # Try to authenticate using Environment Variables (Cloud Run / Production)
+        # Check for ANY of the required variables to avoid silent failure if one is missing
+        if os.getenv('GMAIL_CLIENT_ID') or os.getenv('GMAIL_REFRESH_TOKEN'):
+            print("Detected environment variables, attempting Cloud Auth...")
+            
+            client_id = os.getenv('GMAIL_CLIENT_ID')
+            client_secret = os.getenv('GMAIL_CLIENT_SECRET')
+            refresh_token = os.getenv('GMAIL_REFRESH_TOKEN')
+            
+            missing = []
+            if not client_id: missing.append('GMAIL_CLIENT_ID')
+            if not client_secret: missing.append('GMAIL_CLIENT_SECRET')
+            if not refresh_token: missing.append('GMAIL_REFRESH_TOKEN')
+            
+            if missing:
+                raise ValueError(f"Missing required environment variables for Cloud Auth: {', '.join(missing)}")
+
             print("Authenticating using Environment Variables...")
             info = {
-                "client_id": os.getenv('GMAIL_CLIENT_ID'),
-                "client_secret": os.getenv('GMAIL_CLIENT_SECRET'),
-                "refresh_token": os.getenv('GMAIL_REFRESH_TOKEN'),
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "refresh_token": refresh_token,
                 "token_uri": "https://oauth2.googleapis.com/token",
                 "scopes": SCOPES
             }
