@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gmail AI Summarizer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --bg: #F9FAFB;
+            --card-bg: #FFFFFF;
+            --text: #1F2937;
+            --text-secondary: #6B7280;
+            --border: #E5E7EB;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            padding: 2rem;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 2.5rem;
+        }
+
+        h1 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 2rem;
+            color: var(--text);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            color: var(--text);
+            transition: border-color 0.15s ease-in-out;
+            box-sizing: border-box;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        button {
+            width: 100%;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.875rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.15s ease-in-out;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+        
+        button:disabled {
+            background-color: var(--text-secondary);
+            cursor: not-allowed;
+        }
+
+        .helper-text {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .loader {
+            display: none;
+            text-align: center;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>Gmail AI Summarizer</h1>
+            <form action="/summarize" method="post" id="summarizeForm">
+                <div class="form-group">
+                    <label for="topic">Topic of Interest</label>
+                    <input type="text" id="topic" name="topic" value="AI" placeholder="e.g., AI, Finance, Project X">
+                    <div class="helper-text">What should the AI focus on?</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="label">Gmail Label</label>
+                    <input type="text" id="label" name="label" value="INBOX" placeholder="Label name">
+                    <div class="helper-text">The folder/label to fetch emails from.</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="max_emails">Max Emails</label>
+                    <input type="number" id="max_emails" name="max_emails" value="50" min="1" max="500">
+                </div>
+
+                <button type="submit" id="submitBtn">Generate Summary</button>
+                
+                <div class="loader" id="loader">
+                    <p>Analyzing your emails (this may take 30-60 seconds)...</p>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('summarizeForm').addEventListener('submit', function() {
+            document.getElementById('submitBtn').disabled = true;
+            document.getElementById('submitBtn').innerText = 'Processing...';
+            document.getElementById('loader').style.display = 'block';
+        });
+    </script>
+</body>
+</html>
