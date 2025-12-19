@@ -23,7 +23,8 @@ def load_config():
         'credentials_path': os.getenv('GMAIL_CREDENTIALS_PATH', 'credentials.json'),
         'gemini_api_key': os.getenv('GEMINI_API_KEY'),
         'gmail_label': os.getenv('GMAIL_LABEL', 'INBOX'),
-        'max_emails': int(os.getenv('MAX_EMAILS', '100'))
+        'max_emails': int(os.getenv('MAX_EMAILS', '100')),
+        'focus_topic': os.getenv('FOCUS_TOPIC', 'AI')
     }
 
     # Validate required config
@@ -63,6 +64,9 @@ def print_separator():
 
 def main():
     """Main application entry point"""
+    # Load configuration
+    config = load_config()
+
     parser = argparse.ArgumentParser(
         description='Gmail AI Summarizer - Analyze and summarize emails using AI',
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -79,20 +83,20 @@ Examples:
     parser.add_argument(
         '--label',
         help='Gmail label to fetch emails from (default: from .env or INBOX)',
-        default=None
+        default=config['gmail_label']
     )
 
     parser.add_argument(
         '--topic',
-        help='Topic to focus the summary on (default: AI)',
-        default='AI'
+        help='Topic to focus the summary on (default: from .env or AI)',
+        default=config['focus_topic']
     )
 
     parser.add_argument(
         '--max',
         type=int,
         help='Maximum number of emails to process (default: from .env or 50)',
-        default=None
+        default=config['max_emails']
     )
 
     parser.add_argument(
@@ -121,11 +125,11 @@ Examples:
 
     args = parser.parse_args()
 
-    # Load configuration
     print("Gmail AI Summarizer")
     print_separator()
     print("Loading configuration...")
-    config = load_config()
+    # Config already loaded at start
+
 
     # Override config with command-line arguments
     if args.label:
