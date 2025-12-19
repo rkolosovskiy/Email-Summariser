@@ -20,6 +20,10 @@ from google.oauth2.credentials import Credentials
 load_dotenv()
 
 app = Flask(__name__)
+
+# Fix for handling HTTPS behind Cloud Run proxy
+from werkzeug.middleware.proxy_fix import ProxyFix
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 # Secret key needed for session/flash
 app.secret_key = os.getenv('FLASK_SECRET_KEY', os.urandom(24))
 # Simple password from environment variable
@@ -126,11 +130,7 @@ def oauth2callback():
     # Use the authorization server's response to fetch the OAuth 2.0 token.
     authorization_response = request.url
     
-    # Fix for http vs https on Cloud Run (proxy)
-    # Only upgrade to https if we are NOT on localhost
-    if 'localhost' not in request.host and '127.0.0.1' not in request.host:
-        if authorization_response.startswith('http:'):
-            authorization_response = authorization_response.replace('http:', 'https:', 1)
+    # ProxyFix logic in app.py setup handles Http->Https conversion automatically now.
             
     try:
         flow.fetch_token(authorization_response=authorization_response)
