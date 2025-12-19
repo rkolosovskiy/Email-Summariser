@@ -20,10 +20,6 @@ from google.oauth2.credentials import Credentials
 load_dotenv()
 
 app = Flask(__name__)
-
-# Fix for handling HTTPS behind Cloud Run proxy
-from werkzeug.middleware.proxy_fix import ProxyFix
-app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 # Secret key needed for session/flash
 app.secret_key = os.getenv('FLASK_SECRET_KEY', os.urandom(24))
 # Simple password from environment variable
@@ -75,7 +71,6 @@ def get_summarizer():
         return None
     return AISummarizer(api_key)
 
-@app.route('/login', methods=['GET', 'POST'])
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     try:
@@ -161,6 +156,10 @@ def logout():
     session.pop('logged_in', None)
     session.pop('credentials', None)
     return redirect(url_for('login'))
+
+@app.route('/health')
+def health():
+    return "OK", 200
 
 @app.route('/', methods=['GET'])
 @login_required
