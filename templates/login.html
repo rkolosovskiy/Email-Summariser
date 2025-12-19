@@ -119,14 +119,13 @@
             {% endif %}
             {% endwith %}
 
-            <form action="/login" method="post">
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required autofocus
-                        placeholder="Enter app password">
-                </div>
-                <button type="submit">Access App</button>
-            </form>
+            <div style="text-align: center;">
+                <a href="{{ url_for('google_login') }}" class="google-btn">
+                    <button type="button" style="background-color: #4285F4;">
+                        Sign in with Google
+                    </button>
+                </a>
+            </div>
         </div>
     </div>
 </body>

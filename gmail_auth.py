@@ -116,3 +116,36 @@ class GmailAuthenticator:
             self.authenticate()
 
         return build('gmail', 'v1', credentials=self.creds)
+
+    def credentials_to_dict(self):
+        """
+        Convert credentials to dictionary for session storage
+        """
+        if not self.creds:
+            return None
+            
+        return {
+            'token': self.creds.token,
+            'refresh_token': self.creds.refresh_token,
+            'token_uri': self.creds.token_uri,
+            'client_id': self.creds.client_id,
+            'client_secret': self.creds.client_secret,
+            'scopes': self.creds.scopes
+        }
+
+    @staticmethod
+    def dict_to_credentials(creds_dict):
+        """
+        Create credentials object from dictionary
+        """
+        if not creds_dict:
+            return None
+            
+        return Credentials(
+            token=creds_dict.get('token'),
+            refresh_token=creds_dict.get('refresh_token'),
+            token_uri=creds_dict.get('token_uri'),
+            client_id=creds_dict.get('client_id'),
+            client_secret=creds_dict.get('client_secret'),
+            scopes=creds_dict.get('scopes')
+        )
