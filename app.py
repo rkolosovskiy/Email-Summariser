@@ -46,6 +46,9 @@ def get_summarizer():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    if not APP_PASSWORD:
+        return redirect(url_for('index'))
+        
     if request.method == 'POST':
         password = request.form.get('password')
         if password == APP_PASSWORD:
@@ -68,10 +71,10 @@ def index():
 @app.route('/summarize', methods=['POST'])
 @login_required
 def summarize():
-    topic = request.form.get('topic', 'AI')
-    label = request.form.get('label', 'INBOX')
+    topic = request.form.get('topic') or os.getenv('FOCUS_TOPIC', 'AI')
+    label = request.form.get('label') or os.getenv('GMAIL_LABEL', 'INBOX')
     try:
-        max_emails = int(request.form.get('max_emails', 50))
+        max_emails = int(request.form.get('max_emails') or os.getenv('MAX_EMAILS', '50'))
     except ValueError:
         max_emails = 50
 
