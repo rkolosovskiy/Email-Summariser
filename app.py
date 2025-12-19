@@ -76,19 +76,24 @@ def get_summarizer():
     return AISummarizer(api_key)
 
 @app.route('/login', methods=['GET', 'POST'])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
-    # If already logged in, go to index
-    if session.get('logged_in') and 'credentials' in session:
-        return redirect(url_for('index'))
-
-    if request.method == 'POST':
-        password = request.form.get('password')
-        if password == APP_PASSWORD:
-            session['logged_in'] = True
+    try:
+        # If already logged in, go to index
+        if session.get('logged_in') and 'credentials' in session:
             return redirect(url_for('index'))
-        else:
-            flash('Invalid password')
-    return render_template('login.html')
+    
+        if request.method == 'POST':
+            password = request.form.get('password')
+            if password == APP_PASSWORD:
+                session['logged_in'] = True
+                return redirect(url_for('index'))
+            else:
+                flash('Invalid password')
+        return render_template('login.html')
+    except Exception as e:
+        import traceback
+        return f"<h1>Debug Error (500)</h1><pre>{traceback.format_exc()}</pre>", 500
 
 @app.route('/google/login')
 def google_login():
