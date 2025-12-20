@@ -4,6 +4,7 @@ Handles fetching and processing emails from Gmail
 """
 
 import base64
+from datetime import datetime, timedelta
 from email.utils import parsedate_to_datetime
 from bs4 import BeautifulSoup
 import html2text
@@ -51,13 +52,15 @@ class GmailClient:
             print(f"Error fetching labels: {e}")
             return None
 
-    def fetch_emails(self, label_name='INBOX', max_results=50):
+    def fetch_emails(self, label_name='INBOX', max_results=50, after_date=None, before_date=None):
         """
         Fetch emails from a specific label
 
         Args:
             label_name: Name of the Gmail label to fetch from
             max_results: Maximum number of emails to fetch
+            after_date: Date string in YYYY/MM/DD format - fetch emails after this date (inclusive)
+            before_date: Date string in YYYY/MM/DD format - fetch emails before this date (inclusive)
 
         Returns:
             List of email dictionaries with metadata and content
@@ -73,12 +76,43 @@ class GmailClient:
 
             print(f"Fetching emails from label: {label_name}...")
 
+            # Build query string for date filtering
+            query_parts = []
+            if after_date:
+                # Convert date format if needed (accept YYYY-MM-DD or YYYY/MM/DD)
+                # Gmail API after: is inclusive, so we can use the date as-is
+                after_formatted = after_date.replace('-', '/')
+                query_parts.append(f"after:{after_formatted}")
+            if before_date:
+                # Convert date format if needed (accept YYYY-MM-DD or YYYY/MM/DD)
+                # Gmail API before: is exclusive, so we add 1 day to make it inclusive
+                try:
+                    # Parse the date and add 1 day
+                    date_format = '%Y-%m-%d' if '-' in before_date else '%Y/%m/%d'
+                    parsed_date = datetime.strptime(before_date, date_format)
+                    inclusive_date = parsed_date + timedelta(days=1)
+                    before_formatted = inclusive_date.strftime('%Y/%m/%d')
+                except ValueError:
+                    # If parsing fails, use the date as-is
+                    before_formatted = before_date.replace('-', '/')
+                query_parts.append(f"before:{before_formatted}")
+            
+            query = ' '.join(query_parts) if query_parts else None
+
+            # Prepare parameters for API call
+            list_params = {
+                'userId': 'me',
+                'labelIds': [label_id],
+                'maxResults': max_results
+            }
+            
+            # Add query parameter if date filtering is specified
+            if query:
+                list_params['q'] = query
+                print(f"Filtering emails with query: {query}")
+
             # Fetch message IDs
-            results = self.service.users().messages().list(
-                userId='me',
-                labelIds=[label_id],
-                maxResults=max_results
-            ).execute()
+            results = self.service.users().messages().list(**list_params).execute()
 
             messages = results.get('messages', [])
 

@@ -75,6 +75,7 @@ Examples:
   %(prog)s                           # Use default settings from .env
   %(prog)s --label "AI-News"         # Summarize emails from AI-News label
   %(prog)s --topic "Machine Learning" --max 100
+  %(prog)s --after-date 2024/01/01 --before-date 2024/12/31  # Date range
   %(prog)s --quick                   # Generate quick insights only
   %(prog)s --output my_summary.md    # Save to specific file
         """
@@ -97,6 +98,18 @@ Examples:
         type=int,
         help='Maximum number of emails to process (default: from .env or 50)',
         default=config['max_emails']
+    )
+
+    parser.add_argument(
+        '--after-date',
+        help='Start date for email search in YYYY-MM-DD or YYYY/MM/DD format (inclusive)',
+        default=None
+    )
+
+    parser.add_argument(
+        '--before-date',
+        help='End date for email search in YYYY-MM-DD or YYYY/MM/DD format (inclusive)',
+        default=None
     )
 
     parser.add_argument(
@@ -169,11 +182,17 @@ Examples:
     print_separator()
     print(f"Fetching emails from label: {config['gmail_label']}")
     print(f"Maximum emails to process: {config['max_emails']}")
+    if args.after_date:
+        print(f"From date: {args.after_date}")
+    if args.before_date:
+        print(f"To date: {args.before_date}")
 
     try:
         emails = gmail_client.fetch_emails(
             label_name=config['gmail_label'],
-            max_results=config['max_emails']
+            max_results=config['max_emails'],
+            after_date=args.after_date,
+            before_date=args.before_date
         )
     except Exception as e:
         print(f"✗ Error fetching emails: {e}")
