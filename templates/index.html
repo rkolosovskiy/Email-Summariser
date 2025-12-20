@@ -65,6 +65,7 @@
 
         input[type="text"],
         input[type="number"],
+        input[type="date"],
         select {
             width: 100%;
             padding: 0.75rem;
@@ -81,6 +82,10 @@
             outline: none;
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        input[type="date"] {
+            cursor: pointer;
         }
 
         button {
@@ -146,7 +151,20 @@
 
                 <div class="form-group">
                     <label for="max_emails">Max Emails</label>
-                    <input type="number" id="max_emails" name="max_emails" value="50" min="1" max="500">
+                    <input type="number" id="max_emails" name="max_emails" value="50" min="1" max="1000">
+                    <div class="helper-text">Maximum number of emails to process (ignored if date range is specified)</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="after_date">From Date (Optional)</label>
+                    <input type="date" id="after_date" name="after_date">
+                    <div class="helper-text">Start date for email search (YYYY-MM-DD)</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="before_date">To Date (Optional)</label>
+                    <input type="date" id="before_date" name="before_date">
+                    <div class="helper-text">End date for email search (YYYY-MM-DD)</div>
                 </div>
 
                 <button type="submit" id="submitBtn">Generate Summary</button>
