@@ -237,10 +237,19 @@ def summarize():
     except ValueError:
         max_emails = 50
 
+    # Get date range parameters (optional)
+    after_date = request.form.get('after_date') or None
+    before_date = request.form.get('before_date') or None
+
     # 1. Authenticate & Fetch
     try:
         client = get_gmail_client()
-        emails = client.fetch_emails(label_name=label, max_results=max_emails)
+        emails = client.fetch_emails(
+            label_name=label, 
+            max_results=max_emails,
+            after_date=after_date,
+            before_date=before_date
+        )
     except Exception as e:
         import traceback
         return f"<h3>Error</h3><pre>{str(e)}\n\n{traceback.format_exc()}</pre>", 500
