@@ -95,26 +95,6 @@ def login():
         import traceback
         return f"<h1>Debug Error (500)</h1><pre>{traceback.format_exc()}</pre>", 500
 
-@app.route('/debug')
-def debug():
-    cid = os.getenv('GMAIL_CLIENT_ID', 'MISSING')
-    secret = os.getenv('GMAIL_CLIENT_SECRET', 'MISSING')
-    redirect_uri = url_for('oauth2callback', _external=True)
-    if 'localhost' not in request.host and '127.0.0.1' not in request.host:
-        if redirect_uri.startswith('http:'):
-            redirect_uri = redirect_uri.replace('http:', 'https:', 1)
-            
-    return f"""
-    <h3>Debug Info</h3>
-    <ul>
-        <li>Client ID: {cid[:5]}... ({'Values Present' if cid != 'MISSING' else 'MISSING'})</li>
-        <li>Client Secret: {'Values Present' if secret != 'MISSING' else 'MISSING'}</li>
-        <li>Generated Redirect URI: {redirect_uri}</li>
-        <li>Insecure Transport: {os.environ.get('OAUTHLIB_INSECURE_TRANSPORT')}</li>
-        <li>Request URL: {request.url}</li>
-    </ul>
-    """
-
 @app.route('/google/login')
 def google_login():
     try:
