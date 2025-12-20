@@ -21,7 +21,12 @@ load_dotenv()
 
 app = Flask(__name__)
 # Secret key needed for session/flash
-app.secret_key = os.getenv('FLASK_SECRET_KEY', os.urandom(24))
+# Secret key needed for session/flash
+secret_key = os.getenv('FLASK_SECRET_KEY')
+if not secret_key:
+    # Fallback for when env var is present but empty, or missing
+    secret_key = os.urandom(24)
+app.secret_key = secret_key
 # Simple password from environment variable
 APP_PASSWORD = os.getenv('APP_PASSWORD')
 
@@ -90,25 +95,54 @@ def login():
         import traceback
         return f"<h1>Debug Error (500)</h1><pre>{traceback.format_exc()}</pre>", 500
 
+@app.route('/debug')
+def debug():
+    cid = os.getenv('GMAIL_CLIENT_ID', 'MISSING')
+    secret = os.getenv('GMAIL_CLIENT_SECRET', 'MISSING')
+    redirect_uri = url_for('oauth2callback', _external=True)
+    if 'localhost' not in request.host and '127.0.0.1' not in request.host:
+        if redirect_uri.startswith('http:'):
+            redirect_uri = redirect_uri.replace('http:', 'https:', 1)
+            
+    return f"""
+    <h3>Debug Info</h3>
+    <ul>
+        <li>Client ID: {cid[:5]}... ({'Values Present' if cid != 'MISSING' else 'MISSING'})</li>
+        <li>Client Secret: {'Values Present' if secret != 'MISSING' else 'MISSING'}</li>
+        <li>Generated Redirect URI: {redirect_uri}</li>
+        <li>Insecure Transport: {os.environ.get('OAUTHLIB_INSECURE_TRANSPORT')}</li>
+        <li>Request URL: {request.url}</li>
+    </ul>
+    """
+
 @app.route('/google/login')
 def google_login():
-    # Dynamically determine redirect URI based on request
-    # For local: http://localhost:8080/oauth2callback
-    # For Cloud Run: https://<service-url>/oauth2callback
-    redirect_uri = url_for('oauth2callback', _external=True)
-    
-    flow = google_auth_oauthlib.flow.Flow.from_client_config(
-        CLIENT_CONFIG,
-        scopes=SCOPES
-    )
-    flow.redirect_uri = redirect_uri
-    
-    authorization_url, state = flow.authorization_url(
-        access_type='offline',
-        include_granted_scopes='true'
-    )
-    session['state'] = state
-    return redirect(authorization_url)
+    try:
+        # Dynamically determine redirect URI based on request
+        # For local: http://localhost:8080/oauth2callback
+        # For Cloud Run: https://<service-url>/oauth2callback
+        redirect_uri = url_for('oauth2callback', _external=True)
+        
+        # Enforce HTTPS on Cloud Run (or any non-local environment)
+        if 'localhost' not in request.host and '127.0.0.1' not in request.host:
+            if redirect_uri.startswith('http:'):
+                redirect_uri = redirect_uri.replace('http:', 'https:', 1)
+        
+        flow = google_auth_oauthlib.flow.Flow.from_client_config(
+            CLIENT_CONFIG,
+            scopes=SCOPES
+        )
+        flow.redirect_uri = redirect_uri
+        
+        authorization_url, state = flow.authorization_url(
+            access_type='offline',
+            include_granted_scopes='true'
+        )
+        session['state'] = state
+        return redirect(authorization_url)
+    except Exception as e:
+        import traceback
+        return f"<h1>Error in /google/login</h1><pre>{traceback.format_exc()}</pre>", 500
 
 @app.route('/oauth2callback')
 def oauth2callback():
@@ -120,6 +154,11 @@ def oauth2callback():
     
     redirect_uri = url_for('oauth2callback', _external=True)
     
+    # Enforce HTTPS on Cloud Run
+    if 'localhost' not in request.host and '127.0.0.1' not in request.host:
+        if redirect_uri.startswith('http:'):
+            redirect_uri = redirect_uri.replace('http:', 'https:', 1)
+    
     flow = google_auth_oauthlib.flow.Flow.from_client_config(
         CLIENT_CONFIG,
         scopes=SCOPES,
@@ -130,7 +169,10 @@ def oauth2callback():
     # Use the authorization server's response to fetch the OAuth 2.0 token.
     authorization_response = request.url
     
-    # ProxyFix logic in app.py setup handles Http->Https conversion automatically now.
+    # Enforce HTTPS on Cloud Run for the authorization response too
+    if 'localhost' not in request.host and '127.0.0.1' not in request.host:
+        if authorization_response.startswith('http:'):
+            authorization_response = authorization_response.replace('http:', 'https:', 1)
             
     try:
         flow.fetch_token(authorization_response=authorization_response)
