@@ -1,0 +1,10 @@
+{
+    "tickers": [
+        "TSLA"
+    ],
+    "report_types": [
+        "10-Q",
+        "10-K",
+        "8-K"
+    ]
+}

@@ -9,3 +9,5 @@ flask
 gunicorn
 fpdf
 markdown
+sec-edgar-downloader>=5.0.0
+lxml

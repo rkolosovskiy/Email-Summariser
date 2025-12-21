@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quarterly Reports - AI Analyst</title>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --background-color: #f8fafc;
+            --card-background: #ffffff;
+            --text-primary: #1e293b;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            color: var(--primary-color);
+            margin: 0;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .card {
+            background: var(--card-background);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            margin-top: 0;
+            font-size: 1.25rem;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        /* Watchlist Styles */
+        .watchlist-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .ticker-badge {
+            background: #eff6ff;
+            color: #2563eb;
+            padding: 8px 12px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ticker-badge span {
+            cursor: pointer;
+            color: #93c5fd;
+            margin-left: 8px;
+        }
+
+        .ticker-badge span:hover {
+            color: #ef4444;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            flex-grow: 1;
+        }
+
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button.secondary {
+            background-color: #64748b;
+        }
+
+        /* Status Section */
+        .status-box {
+            background: #1e293b;
+            color: #10b981;
+            font-family: monospace;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            min-height: 100px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Q_Reports Analyst</h1>
+            <a href="/" class="nav-link">← Back to Summarizer</a>
+        </div>
+
+        <div class="card">
+            <h2>Watchlist</h2>
+            <div class="watchlist-grid">
+                {% for ticker in watchlist['tickers'] %}
+                <div class="ticker-badge">
+                    {{ ticker }}
+                    <span onclick="removeTicker('{{ ticker }}')">×</span>
+                </div>
+                {% endfor %}
+            </div>
+
+            <form action="/q_reports/add_ticker" method="POST" class="controls">
+                <input type="text" name="ticker" placeholder="Add Ticker (e.g. TSLA)" required>
+                <button type="submit">Add</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Actions</h2>
+            <div class="controls">
+                <form action="/q_reports/download" method="POST" style="display:inline;">
+                    <button type="submit" class="secondary">⬇ Fetch Latest Reports (SEC)</button>
+                </form>
+
+                <form action="/q_reports/analyze" method="POST" style="margin-top: 15px;">
+                    <div style="margin-bottom: 10px;">
+                        <textarea name="custom_prompt"
+                            placeholder="Optional: Enter a specific question or instruction for the analysis (e.g. 'Focus on risks related to AI investment'). If left blank, a default market overview will be generated."
+                            style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; box-sizing: border-box; font-family: inherit; min-height: 200px;"
+                            rows="8"></textarea>
+                    </div>
+                    <button type="submit">✨ Run AI Analysis</button>
+                </form>
+            </div>
+
+            {% if last_action %}
+            <div class="status-box">
+                > {{ last_action }}
+            </div>
+            {% endif %}
+        </div>
+
+        {% if analysis_result %}
+        <div class="card">
+            <h2>AI Analysis Report</h2>
+            <div>
+                {{ analysis_result | safe }}
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+
+    <script>
+        function removeTicker(ticker) {
+            if (confirm('Remove ' + ticker + ' from watchlist?')) {
+                fetch('/q_reports/remove_ticker', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'ticker=' + ticker
+                }).then(() => window.location.reload());
+            }
+        }
+    </script>
+</body>
+
+</html>

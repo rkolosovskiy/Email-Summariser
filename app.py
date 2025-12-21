@@ -10,7 +10,9 @@ from gmail_auth import GmailAuthenticator
 from googleapiclient.discovery import build
 from gmail_client import GmailClient
 from ai_summarizer import AISummarizer
+from financial_analyst import FinancialAnalyst
 from pdf_generator import PDFGenerator
+from sec_manager import SECManager
 
 import json
 import google_auth_oauthlib.flow
@@ -102,7 +104,12 @@ def google_login():
         # For local: http://localhost:8080/oauth2callback
         # For Cloud Run: https://<service-url>/oauth2callback
         redirect_uri = url_for('oauth2callback', _external=True)
-        
+    
+        # Fix for local mismatch: Google Console usually has http://127.0.0.1:8080/oauth2callback
+        # If browser is on localhost, force 127.0.0.1 to match Console.
+        if 'localhost' in redirect_uri:
+            redirect_uri = redirect_uri.replace('localhost', '127.0.0.1')
+
         # Enforce HTTPS on Cloud Run (or any non-local environment)
         if 'localhost' not in request.host and '127.0.0.1' not in request.host:
             if redirect_uri.startswith('http:'):
@@ -133,6 +140,10 @@ def oauth2callback():
     state = session['state']
     
     redirect_uri = url_for('oauth2callback', _external=True)
+
+    # Fix for local mismatch: Ensure we use the exact same URI as we sent in the login request
+    if 'localhost' in redirect_uri:
+        redirect_uri = redirect_uri.replace('localhost', '127.0.0.1')
     
     # Enforce HTTPS on Cloud Run
     if 'localhost' not in request.host and '127.0.0.1' not in request.host:
@@ -249,6 +260,109 @@ def summarize():
     html_content = markdown.markdown(summary_markdown, extensions=['fenced_code', 'tables'])
 
     return render_template('summary.html', content_html=html_content, markdown_content=summary_markdown)
+
+# --- Q_Reports Routes ---
+@app.route('/q_reports', methods=['GET'])
+@login_required
+def q_reports():
+    sec_manager = SECManager()
+    watchlist = sec_manager.get_watchlist()
+    last_action = session.pop('q_reports_action', None)
+    return render_template('q_reports.html', watchlist=watchlist, last_action=last_action)
+
+@app.route('/q_reports/add_ticker', methods=['POST'])
+@login_required
+def add_ticker():
+    ticker = request.form.get('ticker')
+    if ticker:
+        sec_manager = SECManager()
+        if sec_manager.add_ticker(ticker):
+             session['q_reports_action'] = f"Added {ticker} to watchlist."
+        else:
+             session['q_reports_action'] = f"{ticker} already in watchlist."
+    return redirect(url_for('q_reports'))
+
+@app.route('/q_reports/remove_ticker', methods=['POST'])
+@login_required
+def remove_ticker():
+    ticker = request.form.get('ticker')
+    if ticker:
+        sec_manager = SECManager()
+        if sec_manager.remove_ticker(ticker):
+            session['q_reports_action'] = f"Removed {ticker} from watchlist."
+    return redirect(url_for('q_reports'))
+
+@app.route('/q_reports/download', methods=['POST'])
+@login_required
+def fetch_reports():
+    # This might take a while, ideally should be async/background task
+    # For now, we'll run it synchronously (beware of timeouts on Cloud Run!)
+    try:
+        sec_manager = SECManager()
+        summary = sec_manager.download_all_watchlist(amount=1)
+        session['q_reports_action'] = f"Download Complete!\n{json.dumps(summary, indent=2)}"
+    except Exception as e:
+        session['q_reports_action'] = f"Error downloading: {str(e)}"
+    return redirect(url_for('q_reports'))
+
+@app.route('/q_reports/analyze', methods=['POST'])
+@login_required
+def analyze_reports():
+    api_key = os.getenv('GEMINI_API_KEY')
+    if not api_key:
+        session['q_reports_action'] = "Error: GEMINI_API_KEY missing."
+        return redirect(url_for('q_reports'))
+
+    sec_manager = SECManager()
+    watchlist = sec_manager.get_watchlist()
+    tickers = watchlist.get('tickers', [])
+    
+    analyst = FinancialAnalyst(api_key)
+    
+    # Check what we have downloaded
+    individual_analyses = [] # List of (ticker, type, summary)
+    
+    # For this MVP, let's just look for 10-Qs first, then 10-Ks if no 10-Q
+    for ticker in tickers:
+        f_path = sec_manager.get_latest_filing_path(ticker, "10-Q")
+        r_type = "10-Q"
+        if not f_path:
+            f_path = sec_manager.get_latest_filing_path(ticker, "10-K")
+            r_type = "10-K"
+            
+        if f_path:
+            try:
+                # Read the file
+                with open(f_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
+                    
+                # Analyze it
+                # Using a crude HTML->Text if needed, or just raw text depending on file format
+                # For MVP, raw text is usually okay for Gemini if not too messy
+                summary = analyst.analyze_filing(content, ticker, r_type)
+                individual_analyses.append((ticker, r_type, summary))
+            except Exception as e:
+                print(f"Failed to analyze {ticker}: {e}")
+    
+    if not individual_analyses:
+        session['q_reports_action'] = "No downloaded reports found. Please click 'Fetch Latest Reports' first."
+        return redirect(url_for('q_reports'))
+
+    # Synthesize
+    custom_prompt = request.form.get('custom_prompt')
+    final_report = analyst.synthesize_reports(individual_analyses, custom_prompt=custom_prompt)
+    
+    # Store result to be shown in template
+    # We'll pass it to render_template via a temporary session store or re-render
+    # Ideally, we should redirect and show it.
+    # Hack for MVP: Store in a global variable or user session if small enough.
+    # Better: Write to a file or database. 
+    # Let's render it directly by calling the view function with context? 
+    # No, redirection is safer. Let's put it in session if it fits, or assume we just show the preview.
+    # Markdown to HTML
+    html_report = markdown.markdown(final_report)
+    
+    return render_template('q_reports.html', watchlist=watchlist, analysis_result=html_report, last_action="Analysis Complete!")
 
 @app.route('/download_pdf', methods=['POST'])
 def download_pdf():
