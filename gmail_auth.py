@@ -59,9 +59,8 @@ class GmailAuthenticator:
                     self.credentials_path, SCOPES
                 )
 
-                # Use run_local_server - it will handle redirect_uri automatically
-                # The library reads redirect_uris from credentials.json
-                self.creds = flow.run_local_server(port=0, open_browser=True)
+                # Use port 8080 to match the redirect URI configured in Google Cloud Console
+                self.creds = flow.run_local_server(port=8080, open_browser=True)
 
             # Save the credentials for the next run
             with open(self.token_path, 'wb') as token:
