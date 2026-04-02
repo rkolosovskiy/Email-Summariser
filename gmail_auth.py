@@ -54,27 +54,14 @@ class GmailAuthenticator:
                     )
 
                 print("Starting OAuth2 authentication flow...")
+                print("A browser window will open for authentication...")
                 flow = InstalledAppFlow.from_client_secrets_file(
                     self.credentials_path, SCOPES
                 )
 
-                # Manual flow to avoid redirect_uri issues
-                flow.redirect_uri = 'urn:ietf:wg:oauth:2.0:oob'
-                auth_url, _ = flow.authorization_url(prompt='consent')
-
-                print("\n" + "=" * 70)
-                print("AUTHORIZATION REQUIRED")
-                print("=" * 70)
-                print("\n1. Open this URL in your browser:\n")
-                print(f"   {auth_url}\n")
-                print("2. Sign in and authorize the app")
-                print("3. Copy the authorization code")
-                print("4. Paste it below\n")
-                print("=" * 70 + "\n")
-
-                code = input("Enter the authorization code: ").strip()
-                flow.fetch_token(code=code)
-                self.creds = flow.credentials
+                # Use run_local_server - it will handle redirect_uri automatically
+                # The library reads redirect_uris from credentials.json
+                self.creds = flow.run_local_server(port=0, open_browser=True)
 
             # Save the credentials for the next run
             with open(self.token_path, 'wb') as token:
