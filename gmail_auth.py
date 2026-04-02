@@ -57,9 +57,19 @@ class GmailAuthenticator:
                 flow = InstalledAppFlow.from_client_secrets_file(
                     self.credentials_path, SCOPES
                 )
-                # run_local_server opens a browser automatically;
-                # if that fails, it prints the URL for manual copy-paste
-                self.creds = flow.run_local_server(port=0)
+                # For Desktop apps, try local server first, fall back to console
+                try:
+                    # Try automatic browser flow with port 0 (auto-select)
+                    self.creds = flow.run_local_server(
+                        port=0,
+                        authorization_prompt_message='Please visit this URL: {url}',
+                        success_message='Authentication successful! You may close this window.',
+                        open_browser=True
+                    )
+                except Exception as e:
+                    print(f"Browser auth failed ({e}), trying manual flow...")
+                    print("Please visit the URL below, authorize the app, and paste the code:")
+                    self.creds = flow.run_console()
 
             # Save the credentials for the next run
             with open(self.token_path, 'wb') as token:
