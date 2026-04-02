@@ -57,14 +57,24 @@ class GmailAuthenticator:
                 flow = InstalledAppFlow.from_client_secrets_file(
                     self.credentials_path, SCOPES
                 )
-                # Use console flow for Desktop apps (no redirect URI issues)
-                print("\nPlease follow these steps:")
-                print("1. A URL will be displayed below")
-                print("2. Open it in your browser")
-                print("3. Sign in and authorize access")
-                print("4. Copy the authorization code")
-                print("5. Paste it back here\n")
-                self.creds = flow.run_console()
+
+                # Manual flow to avoid redirect_uri issues
+                flow.redirect_uri = 'urn:ietf:wg:oauth:2.0:oob'
+                auth_url, _ = flow.authorization_url(prompt='consent')
+
+                print("\n" + "=" * 70)
+                print("AUTHORIZATION REQUIRED")
+                print("=" * 70)
+                print("\n1. Open this URL in your browser:\n")
+                print(f"   {auth_url}\n")
+                print("2. Sign in and authorize the app")
+                print("3. Copy the authorization code")
+                print("4. Paste it below\n")
+                print("=" * 70 + "\n")
+
+                code = input("Enter the authorization code: ").strip()
+                flow.fetch_token(code=code)
+                self.creds = flow.credentials
 
             # Save the credentials for the next run
             with open(self.token_path, 'wb') as token:
