@@ -3,7 +3,8 @@ AI Summarizer Module
 Uses Google Gemini AI to generate summaries of email content
 """
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from datetime import datetime
 
 
@@ -17,8 +18,8 @@ class AISummarizer:
         Args:
             api_key: Google Gemini API key
         """
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-2.5-pro')
+        self.client = genai.Client(api_key=api_key)
+        self.model = 'gemini-2.5-pro-exp-03-25'
 
     def summarize_emails(self, emails, focus_topic="AI"):
         """
@@ -45,12 +46,13 @@ class AISummarizer:
 
         try:
             # Call Gemini API
-            response = self.model.generate_content(
-                prompt,
-                generation_config={
-                    'temperature': 0.3,
-                    'max_output_tokens': 4000,
-                }
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.3,
+                    max_output_tokens=4000,
+                )
             )
 
             summary = response.text
@@ -159,12 +161,13 @@ Please provide your comprehensive {focus_topic} industry summary now:"""
 Provide concise, actionable bullet points:"""
 
         try:
-            response = self.model.generate_content(
-                prompt,
-                generation_config={
-                    'temperature': 0.3,
-                    'max_output_tokens': 500,
-                }
+            response = self.client.models.generate_content(
+                model=self.model,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.3,
+                    max_output_tokens=500,
+                )
             )
 
             insights = response.text

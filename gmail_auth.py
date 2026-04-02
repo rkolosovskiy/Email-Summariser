@@ -57,15 +57,9 @@ class GmailAuthenticator:
                 flow = InstalledAppFlow.from_client_secrets_file(
                     self.credentials_path, SCOPES
                 )
-                print("Using fixed port 8080 for authentication...")
-                # The credentials.json file might contain a different redirect_uri if not updated,
-                # but we can try to force the redirect_uri that the user should have added to their console.
-                flow.redirect_uri = 'http://localhost:8080/'
-                
-                # run_local_server will use this host and port
-                self.creds = flow.run_local_server(port=8080, open_browser=False)
-                
-                print(f"Please open this URL in your browser: {flow.authorization_url()[0]}")
+                # run_local_server opens a browser automatically;
+                # if that fails, it prints the URL for manual copy-paste
+                self.creds = flow.run_local_server(port=0)
 
             # Save the credentials for the next run
             with open(self.token_path, 'wb') as token:
